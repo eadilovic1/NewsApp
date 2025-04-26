@@ -25,28 +25,34 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import etf.ri.rma.newsfeedapp.R
 import etf.ri.rma.newsfeedapp.model.NewsItem
+import etf.ri.rma.newsfeedapp.navigacija.NavigationState
 import etf.ri.rma.newsfeedapp.ui.theme.Lavender
 import etf.ri.rma.newsfeedapp.ui.theme.LightBlue
 import etf.ri.rma.newsfeedapp.ui.theme.LightGreen
 
 
 @Composable
-fun StandardNewsCard(vijest: NewsItem) {
-    var backgroundColor = when (vijest.category) {
+fun StandardNewsCard(vijest: NewsItem, navController: NavHostController) {
+    /*var backgroundColor = when (vijest.category) {
         "Sport" -> LightBlue
         "Nauka/Tehnologija" -> LightGreen
         "Politika" -> Lavender
         else -> MaterialTheme.colorScheme.surface
     }
     var boja by remember { mutableStateOf(backgroundColor) }
-    val defaultColor = MaterialTheme.colorScheme.surface
+    val defaultColor = MaterialTheme.colorScheme.surface*/
     Card(
-        onClick = {boja = defaultColor},
-        colors = CardDefaults.cardColors(
+        onClick = {
+            //boja = defaultColor
+            NavigationState.selectNewsItem(vijest.id)
+            navController.navigate("details/${vijest.id}")
+        },
+        /*colors = CardDefaults.cardColors(
             containerColor = boja
-        ),
+        ),*/
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth(),

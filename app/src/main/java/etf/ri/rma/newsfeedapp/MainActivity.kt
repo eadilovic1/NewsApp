@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import etf.ri.rma.newsfeedapp.model.AppTheme
+import etf.ri.rma.newsfeedapp.navigacija.AppNavigation
 import etf.ri.rma.newsfeedapp.screen.NewsFeedScreen
 import etf.ri.rma.newsfeedapp.ui.theme.NewsAppTheme
 
@@ -68,7 +69,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                             innerPadding ->
                         Box(modifier = Modifier.padding(innerPadding)) {
-                            NewsFeedScreen()
+                            AppNavigation()
                         }
                     }
                 }
