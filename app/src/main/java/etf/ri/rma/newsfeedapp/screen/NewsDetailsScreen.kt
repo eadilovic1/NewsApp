@@ -14,30 +14,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import etf.ri.rma.newsfeedapp.data.NewsData
-import etf.ri.rma.newsfeedapp.model.NewsItem
 import etf.ri.rma.newsfeedapp.navigacija.NavigationState
-import etf.ri.rma.newsfeedapp.ui.theme.NewsAppTheme
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
-fun NewsDetailsScreen(navController: NavHostController) {
+fun NewsDetailsScreen(navController: NavHostController, id : String) {
     val listaVijesti = remember { NewsData.getAllNews() }
-    //PROVJERITI KAKO JE INICIJALIZOVAN currentId
-    val currentId = navController.currentBackStackEntry?.arguments?.getString("id")
-    
-    if (currentId == null) {
-        Text("Vijest nije pronađena.")
-        return
-    }
-    val trenutnaVijest = remember {
-        NavigationState.getTrenutnaVijest()
-    } ?: run {
+    val trenutnaVijest = remember(id) { listaVijesti.find { it.id == id } }
+
+    if (trenutnaVijest == null) {
         Text("Vijest nije pronađena.")
         return
     }
@@ -49,13 +38,16 @@ fun NewsDetailsScreen(navController: NavHostController) {
             .sortedWith(
                 compareBy(
                     {
-                        val d1 = dateFormat.parse(it.publishedDate)
-                        val d2 = dateFormat.parse(trenutnaVijest.publishedDate)
-                        kotlin.math.abs(d1!!.time - d2!!.time)
+                        try {
+                            val d1 = dateFormat.parse(it.publishedDate)
+                            val d2 = dateFormat.parse(trenutnaVijest.publishedDate)
+                            kotlin.math.abs(d1!!.time - d2!!.time)
+                        } catch (e: Exception) {
+                            0L // Ako je parsiranje neuspješno, koristimo 0 kao default vrijednost
+                        }
                     },
                     { it.title }
                 )
-
             )
             .take(2)
     }
@@ -95,7 +87,7 @@ fun NewsDetailsScreen(navController: NavHostController) {
         )
 
         Text(
-            text = "Datum: ${SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(trenutnaVijest.publishedDate)}",
+            text = "Datum: ${trenutnaVijest.publishedDate}",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.testTag("details_date")
         )
@@ -116,9 +108,11 @@ fun NewsDetailsScreen(navController: NavHostController) {
                 modifier = Modifier
                     .clickable {
                         NavigationState.selectNewsItem(vijest.id)
+                        navController.navigate("details/${vijest.id}")  // Dodano za navigaciju na povezane vijesti
                     }
                     .testTag("related_news_title_${index + 1}")
             )
+            Spacer(modifier = Modifier.height(4.dp))
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -132,41 +126,5 @@ fun NewsDetailsScreen(navController: NavHostController) {
         ) {
             Text("Zatvori detalje")
         }
-    }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun NewsDetailsScreenPreview() {
-    NewsAppTheme(isDarkTheme = false) { // Zamijenite sa vašom temom ako je imate
-        val navController = rememberNavController()
-
-        // Kreirajte testni NewsItem
-        val testNews = NewsItem(
-            id = "1",
-            title = "Testna vijest",
-            snippet = "Ovo je kratak opis testne vijesti koja sadrži neke detalje.",
-            category = "Tehnologija",
-            imageUrl = null,
-            isFeatured = true,
-            source = "Testni izvor",
-            publishedDate = "01-01-2023"
-        )
-
-        // Postavite testne argumente
-        navController.currentBackStackEntry?.arguments?.putString("id", testNews.id)
-
-        NewsDetailsScreen(navController = navController)
-    }
-}
-
-@Preview(showBackground = true, name = "No News Found")
-@Composable
-fun NewsDetailsScreenNotFoundPreview() {
-    NewsAppTheme(isDarkTheme = true) {
-        val navController = rememberNavController()
-        // Ne postavljamo argument "id" kako bismo simulirali nepronađenu vijest
-        NewsDetailsScreen(navController = navController)
     }
 }

@@ -23,7 +23,9 @@ fun AppNavigation() {
         composable("details/{id}") { backStackEntry ->
             val newsId = backStackEntry.arguments?.getString("id")
             newsId?.let { NavigationState.selectNewsItem(it) }
-            NewsDetailsScreen(navController = navController)
+            if (newsId != null) {
+                NewsDetailsScreen(navController = navController, id = newsId)
+            }
         }
     }
 }
