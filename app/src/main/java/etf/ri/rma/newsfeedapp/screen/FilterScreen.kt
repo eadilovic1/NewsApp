@@ -324,11 +324,28 @@ fun FilterScreen(navController: NavHostController) {
                     }
                 },
                 dismissButton = {
-                    Button(onClick = {
-                        // Odustani od odabira datuma - ne mijenja odabraniDatumi
-                        prikaziDateRangePicker = false
-                    }) {
-                        Text("Odustani")
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Button(
+                            onClick = {
+                                // Poništi odabir datuma (potpuno)
+                                odabraniDatumi = null
+                                privremeniOdabraniDatumi = null
+                                dateRangePickerState.setSelection(null, null)
+                                prikaziDateRangePicker = false
+                            }
+                        ) {
+                            Text("Poništi")
+                        }
+
+                        Button(onClick = {
+                            // Odustani od odabira datuma - ne mijenja odabraniDatumi
+                            prikaziDateRangePicker = false
+                        }) {
+                            Text("Odustani")
+                        }
                     }
                 }
             ) {
