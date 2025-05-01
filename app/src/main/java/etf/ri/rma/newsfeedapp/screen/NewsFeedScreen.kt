@@ -7,10 +7,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -84,7 +81,7 @@ fun NewsFeedScreen(navController: NavHostController) {
                 "Nauka/Tehnologija" to "filter_chip_sci",
                 "Sve" to "filter_chip_all",
                 "Prazna kategorija" to "filter_chip_none",
-                "Više filtera..." to "filter_chip_more"
+                "Više filtera ..." to "filter_chip_more"
             ).forEach { (kategorija, oznaka) ->
                 if(oznaka == "filter_chip_more"){
                     FilterChipComponent(

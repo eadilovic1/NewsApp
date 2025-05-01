@@ -1,7 +1,6 @@
 package etf.ri.rma.newsfeedapp.screen
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -44,7 +43,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import etf.ri.rma.newsfeedapp.FilterChipComponent
-import etf.ri.rma.newsfeedapp.data.NewsData
 import etf.ri.rma.newsfeedapp.navigacija.NavigationState
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -53,7 +51,6 @@ import java.util.Locale
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun FilterScreen(navController: NavHostController) {
-    val sveVijesti = remember { NewsData.getAllNews() }
     var privremenaKategorija by remember { mutableStateOf(NavigationState.trenutnaKategorija ?: "Sve") }
 
     // State za nepoželjne riječi
@@ -67,9 +64,17 @@ fun FilterScreen(navController: NavHostController) {
     val dateRangePickerState = rememberDateRangePickerState(
         initialDisplayMode = DisplayMode.Picker
     )
-    var odabraniDatumi by remember { mutableStateOf(
+
+    // Inicijalno stanje datuma koje se koristi za povratak na prethodno stanje
+    val inicijalniDatumi = remember {
         NavigationState.trenutniOpsegDatuma?.let { "${it.first};${it.second}" }
-    )}
+    }
+
+    // Trenutni odabrani datumi
+    var odabraniDatumi by remember { mutableStateOf(inicijalniDatumi) }
+
+    // Privremeni odabrani datumi koji se koriste dok je dijalog otvoren
+    var privremeniOdabraniDatumi by remember { mutableStateOf(odabraniDatumi) }
 
     // Formatiranje datuma za prikaz
     fun formatirajDatum(datum: Long): String {
@@ -77,11 +82,23 @@ fun FilterScreen(navController: NavHostController) {
         return format.format(Date(datum))
     }
 
-    // Automatsko ažuriranje odabranog datuma
-    LaunchedEffect(dateRangePickerState.selectedStartDateMillis, dateRangePickerState.selectedEndDateMillis) {
-        dateRangePickerState.selectedStartDateMillis?.let { pocetniDatum ->
-            dateRangePickerState.selectedEndDateMillis?.let { krajnjiDatum ->
-                odabraniDatumi = "${formatirajDatum(pocetniDatum)};${formatirajDatum(krajnjiDatum)}"
+    // Postavljanje inicijalnog stanja picker-a kada se dijalog otvori
+    fun postaviDatePickerState() {
+        if (odabraniDatumi != null) {
+            val dijelovi = odabraniDatumi!!.split(";")
+            if (dijelovi.size == 2) {
+                try {
+                    val format = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+                    val pocetniDatum = format.parse(dijelovi[0])?.time
+                    val krajnjiDatum = format.parse(dijelovi[1])?.time
+
+                    dateRangePickerState.setSelection(
+                        startDateMillis = pocetniDatum,
+                        endDateMillis = krajnjiDatum
+                    )
+                } catch (e: Exception) {
+                    // Ako ne može da parsira datume, ne radi ništa
+                }
             }
         }
     }
@@ -143,7 +160,11 @@ fun FilterScreen(navController: NavHostController) {
                     )
 
                     Button(
-                        onClick = { prikaziDateRangePicker = true },
+                        onClick = {
+                            postaviDatePickerState()
+                            privremeniOdabraniDatumi = odabraniDatumi
+                            prikaziDateRangePicker = true
+                        },
                         modifier = Modifier.testTag("filter_daterange_button")
                     ) {
                         Icon(Icons.Default.DateRange, contentDescription = "Odabir datuma")
@@ -245,12 +266,20 @@ fun FilterScreen(navController: NavHostController) {
             }
         }
 
-        // Dugme "Primijeni filtere" na dnu ekrana
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+        // Dugmad Odustani/Primjijeni filtere
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            Button(
+                onClick = {
+                    navController.navigate("home")
+                },
+                modifier = Modifier.height(50.dp)
+            ) {
+                Text("Odustani")
+            }
+
             Button(
                 onClick = {
                     NavigationState.setFilters(
@@ -262,7 +291,7 @@ fun FilterScreen(navController: NavHostController) {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
+                    .height(50.dp)
                     .testTag("filter_apply_button")
             ) {
                 Text("Primijeni filtere")
@@ -271,15 +300,34 @@ fun FilterScreen(navController: NavHostController) {
 
         // Dijalog za odabir datuma
         if (prikaziDateRangePicker) {
+            // Praćenje promjena odabranih datuma
+            LaunchedEffect(dateRangePickerState.selectedStartDateMillis, dateRangePickerState.selectedEndDateMillis) {
+                dateRangePickerState.selectedStartDateMillis?.let { pocetniDatum ->
+                    dateRangePickerState.selectedEndDateMillis?.let { krajnjiDatum ->
+                        privremeniOdabraniDatumi = "${formatirajDatum(pocetniDatum)};${formatirajDatum(krajnjiDatum)}"
+                    }
+                }
+            }
+
             androidx.compose.material3.DatePickerDialog(
-                onDismissRequest = { prikaziDateRangePicker = false },
+                onDismissRequest = {
+                    // Zatvaranje dijaloga bez promjene
+                    prikaziDateRangePicker = false
+                },
                 confirmButton = {
-                    Button(onClick = { prikaziDateRangePicker = false }) {
+                    Button(onClick = {
+                        // Potvrdi odabir datuma
+                        odabraniDatumi = privremeniOdabraniDatumi
+                        prikaziDateRangePicker = false
+                    }) {
                         Text("Potvrdi")
                     }
                 },
                 dismissButton = {
-                    Button(onClick = { prikaziDateRangePicker = false }) {
+                    Button(onClick = {
+                        // Odustani od odabira datuma - ne mijenja odabraniDatumi
+                        prikaziDateRangePicker = false
+                    }) {
                         Text("Odustani")
                     }
                 }

@@ -1,5 +1,6 @@
 package etf.ri.rma.newsfeedapp.screen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -25,6 +26,22 @@ import java.util.Locale
 fun NewsDetailsScreen(navController: NavHostController, id : String) {
     val listaVijesti = remember { NewsData.getAllNews() }
     val trenutnaVijest = remember(id) { listaVijesti.find { it.id == id } }
+
+    // Funkcija za povratak na glavni ekran
+    fun backToHome() {
+        NavigationState.backToNewsList()
+        navController.navigate("home") {
+            // Briše prethodni ekran detalja iz back stack-a
+            popUpTo("home") {
+                inclusive = false
+            }
+        }
+    }
+
+    // Handling sistemskog back dugmeta
+    BackHandler {
+        backToHome()
+    }
 
     if (trenutnaVijest == null) {
         Text("Vijest nije pronađena.")
@@ -119,8 +136,7 @@ fun NewsDetailsScreen(navController: NavHostController, id : String) {
 
         Button(
             onClick = {
-                NavigationState.backToNewsList()
-                navController.navigate("home")
+                backToHome()
             },
             modifier = Modifier.testTag("details_close_button")
         ) {
