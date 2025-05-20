@@ -18,29 +18,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import etf.ri.rma.newsfeedapp.data.NewsData
-import etf.ri.rma.newsfeedapp.navigacija.NavigationState
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
-fun NewsDetailsScreen(navController: NavHostController, id : String) {
+fun NewsDetailsScreen(navController: NavHostController, id: String) {
     val listaVijesti = remember { NewsData.getAllNews() }
     val trenutnaVijest = remember(id) { listaVijesti.find { it.id == id } }
 
-    // Funkcija za povratak na glavni ekran
-    fun backToHome() {
-        NavigationState.backToNewsList()
-        navController.navigate("home") {
-            // Briše prethodni ekran detalja iz back stack-a
-            popUpTo("home") {
-                inclusive = false
-            }
-        }
-    }
-
-    // Handling sistemskog back dugmeta
     BackHandler {
-        backToHome()
+        navController.popBackStack("home", inclusive = false)
     }
 
     if (trenutnaVijest == null) {
@@ -60,7 +47,7 @@ fun NewsDetailsScreen(navController: NavHostController, id : String) {
                             val d2 = dateFormat.parse(trenutnaVijest.publishedDate)
                             kotlin.math.abs(d1!!.time - d2!!.time)
                         } catch (e: Exception) {
-                            0L // Ako je parsiranje neuspješno, koristimo 0 kao default vrijednost
+                            Long.MAX_VALUE
                         }
                     },
                     { it.title }
@@ -124,8 +111,7 @@ fun NewsDetailsScreen(navController: NavHostController, id : String) {
                 text = vijest.title,
                 modifier = Modifier
                     .clickable {
-                        NavigationState.selectNewsItem(vijest.id)
-                        navController.navigate("details/${vijest.id}")  // Dodano za navigaciju na povezane vijesti
+                        navController.navigate("details/${vijest.id}")
                     }
                     .testTag("related_news_title_${index + 1}")
             )
@@ -136,7 +122,7 @@ fun NewsDetailsScreen(navController: NavHostController, id : String) {
 
         Button(
             onClick = {
-                backToHome()
+                navController.popBackStack("home", inclusive = false)
             },
             modifier = Modifier.testTag("details_close_button")
         ) {

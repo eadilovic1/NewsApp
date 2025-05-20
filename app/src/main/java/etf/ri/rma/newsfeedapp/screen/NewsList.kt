@@ -19,7 +19,7 @@ fun NewsList(listaVijesti: List<NewsItem>, navController: NavHostController) {
         modifier = Modifier
             .fillMaxSize()
             .testTag("news_list"),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(1.dp)
     ) {
         items(listaVijesti) { vijest ->
             if (vijest.isFeatured) {
@@ -30,32 +30,3 @@ fun NewsList(listaVijesti: List<NewsItem>, navController: NavHostController) {
         }
     }
 }
-
-
-/*@Preview(showBackground = true)
-@Composable
-fun NewsListPreview() {
-    val dummyNews = listOf(
-        NewsItem(
-            id = "1",
-            title = "Naslov 1 je puno duži od drugog naslova kako bismo testirali prelazak u novi red",
-            snippet = "Ovo je kratki opis vijesti broj 1.",
-            imageUrl = "",
-            source = "Klix.ba",
-            publishedDate = "2025-04-08",
-            category = "Sport",
-            isFeatured = false
-        ),
-        NewsItem(
-            id = "2",
-            title = "Naslov 2",
-            snippet = "Vijest broj 2 ima malo duži opis da testiramo izgled pri prelasku u novi red.",
-            imageUrl = "",
-            source = "Al Jazeera",
-            publishedDate = "2025-04-07",
-            category = "Politika",
-            isFeatured = true
-        )
-    )
-    NewsList(listaVijesti = dummyNews, navController)
-}*/

@@ -15,10 +15,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -26,26 +22,18 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import etf.ri.rma.newsfeedapp.R
 import etf.ri.rma.newsfeedapp.model.NewsItem
 import etf.ri.rma.newsfeedapp.navigacija.NavigationState
-import etf.ri.rma.newsfeedapp.ui.theme.LemonChiffon
 
 @Composable
-fun FeaturedNewsCard(vijest: NewsItem, navController: NavHostController) {
-    /*var backgroundColor = LemonChiffon
-    var boja by remember { mutableStateOf(backgroundColor) }
-    val defaultColor = MaterialTheme.colorScheme.surface*/
+fun FeaturedNewsCard(vijest: NewsItem, navController: NavHostController = rememberNavController()) {
     Card(
-        //onClick = {boja = defaultColor},
         onClick = {
-            //boja = defaultColor
             NavigationState.selectNewsItem(vijest.id)
             navController.navigate("details/${vijest.id}")
         },
-        /*colors = CardDefaults.cardColors(
-            containerColor = boja
-        ),*/
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth(),

@@ -26,16 +26,6 @@ object NewsData {
         ),
         NewsItem(
             id = "2",
-            title = "Ovo je probna vijest koja testira overflow za naslov i snippet kod \"StandardCard\" koji trebaju biti dovoljno dugi da bi se to postiglo!",
-            snippet = "Nikako ne mogu da smislim dobar opis za neku vijest koji ima smisla i pored toga dobro testira šta se desi kad je opis \"standardne vijesti\" duži od 3 reda.",
-            imageUrl = "",
-            category = "Nauka/Tehnologija",
-            isFeatured = false,
-            source = "KreativnostiBez",
-            publishedDate = "17-04-2024"
-        ),
-        NewsItem(
-            id = "3",
             title = "Otvorena prva digitalna ambasada",
             snippet = "Nova inicijativa smanjuje troškove i ubrzava usluge državljanima u inostranstvu.",
             imageUrl = "",
@@ -45,7 +35,7 @@ object NewsData {
             publishedDate = "31-03-2025"
         ),
         NewsItem(
-            id = "4",
+            id = "3",
             title = "Otkriven novi tip baterije s dužim trajanjem",
             snippet = "Nova litijum-gvožđe tehnologija mogla bi zamijeniti klasične baterije.",
             imageUrl = "",
@@ -55,17 +45,17 @@ object NewsData {
             publishedDate = "21-05-2024"
         ),
         NewsItem(
-            id = "5",
-            title = "Bokserski šampion Felix Sturm brani titulu sedmi put",
-            snippet = "Spektakularna borba oduševila je gledaoce širom svijeta.",
+            id = "4",
+            title = "Timo Boll porazio Ma Longa",
+            snippet = "Spektakularan meč oduševio je gledaoce širom svijeta.",
             imageUrl = "",
             category = "Sport",
             isFeatured = true,
-            source = "Borilačke novine",
+            source = "Pongfinity",
             publishedDate = "13-03-2025"
         ),
         NewsItem(
-            id = "6",
+            id = "5",
             title = "Novi zakon o transparentnosti finansija",
             snippet = "Parlament usvojio zakon koji zahtijeva potpunu javnost budžetskih troškova.",
             imageUrl = "",
@@ -75,7 +65,7 @@ object NewsData {
             publishedDate = "10-05-2024"
         ),
         NewsItem(
-            id = "7",
+            id = "6",
             title = "Zrinka Ljutić najbolja slalomašica svijeta",
             snippet = "Prvi kristalni globus za Hrvatsku nakon Ivice Kostelića.",
             imageUrl = "",
@@ -85,7 +75,7 @@ object NewsData {
             publishedDate = "27-03-2025"
         ),
         NewsItem(
-            id = "8",
+            id = "7",
             title = "Političari se sukobili tokom TV debate",
             snippet = "Debata pred izbore donijela neočekivane tenzije.",
             imageUrl = "",
@@ -95,7 +85,7 @@ object NewsData {
             publishedDate = "26-04-2024"
         ),
         NewsItem(
-            id = "9",
+            id = "8",
             title = "Nova aplikacija spašava živote u hitnim situacijama",
             snippet = "Aplikacija automatski poziva pomoć i šalje lokaciju.",
             imageUrl = "",
@@ -105,7 +95,7 @@ object NewsData {
             publishedDate = "03-05-2025"
         ),
         NewsItem(
-            id = "10",
+            id = "9",
             title = "Prva bežična elektrana testirana uspješno",
             snippet = "Energetski sektor pred velikom prekretnicom.",
             imageUrl = "",
@@ -115,7 +105,7 @@ object NewsData {
             publishedDate = "18-04-2024"
         ),
         NewsItem(
-            id = "11",
+            id = "10",
             title = "Premijer najavio novu strategiju za mlade",
             snippet = "Fokus na obrazovanje, zapošljavanje i digitalne vještine.",
             imageUrl = "",
@@ -125,7 +115,7 @@ object NewsData {
             publishedDate = "25-05-2025"
         ),
         NewsItem(
-            id = "12",
+            id = "11",
             title = "Autonomna vozila stižu na domaće puteve",
             snippet = "Testna flota već se kreće ulicama glavnog grada.",
             imageUrl = "",
@@ -135,7 +125,7 @@ object NewsData {
             publishedDate = "08-03-2024"
         ),
         NewsItem(
-            id = "13",
+            id = "12",
             title = "Gol godine: Nezaboravan trenutak za mladog Amara Gigovića",
             snippet = "Navijači širom Evrope još komentarišu ovaj nevjerovatan pogodak.",
             imageUrl = "",
@@ -145,7 +135,7 @@ object NewsData {
             publishedDate = "21-03-2025"
         ),
         NewsItem(
-            id = "14",
+            id = "13",
             title = "Usvojen zakon o zabrani plastike za jednokratnu upotrebu",
             snippet = "Vlada odlučila da krene ka održivijem društvu.",
             imageUrl = "",
@@ -155,7 +145,7 @@ object NewsData {
             publishedDate = "15-05-2024"
         ),
         NewsItem(
-            id = "15",
+            id = "14",
             title = "Nova tehnologija čita misli uz pomoć EEG signala",
             snippet = "Istraživači najavili mogućnosti komunikacije za osobe sa paralizom.",
             imageUrl = "",
@@ -165,7 +155,7 @@ object NewsData {
             publishedDate = "09-03-2025"
         ),
         NewsItem(
-            id = "16",
+            id = "15",
             title = "Trener NK Bosna Visoko podnio ostavku nakon teškog poraza u desetom kolu premijer lige",
             snippet = "Poraz donio timu pad na tabeli u zonu relegacije.",
             imageUrl = "",
@@ -175,7 +165,7 @@ object NewsData {
             publishedDate = "18-05-2024"
         ),
         NewsItem(
-            id = "17",
+            id = "16",
             title = "Novo partnerstvo za razvoj pametnih gradova",
             snippet = "Lokalne vlasti udružile snage sa tehnološkim gigantima.",
             imageUrl = "",
@@ -185,7 +175,7 @@ object NewsData {
             publishedDate = "24-05-2025"
         ),
         NewsItem(
-            id = "18",
+            id = "17",
             title = "Nova laboratorija za kvantne eksperimente",
             snippet = "Otvorena najsavremenija laboratorija u regionu.",
             imageUrl = "",
@@ -193,6 +183,16 @@ object NewsData {
             isFeatured = false,
             source = "Kvantne novosti",
             publishedDate = "16-03-2024"
+        ),
+        NewsItem(
+            id = "18",
+            title = "Ovo je probna vijest koja testira overflow za naslov i snippet kod \"StandardNewsCard\" koji trebaju biti dovoljno dugi da bi se to postiglo!",
+            snippet = "Nikako ne mogu da smislim dobar opis za neku vijest koji ima smisla i pored toga dobro testira šta se desi kad je opis \"standardne vijesti\" duži od 3 reda.",
+            imageUrl = "",
+            category = "Nauka/Tehnologija",
+            isFeatured = false,
+            source = "KreativnostiBez",
+            publishedDate = "24-05-2025"
         ),
         NewsItem(
             id = "19",

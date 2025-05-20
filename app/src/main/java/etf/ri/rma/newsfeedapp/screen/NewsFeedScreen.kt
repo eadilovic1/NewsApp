@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import etf.ri.rma.newsfeedapp.FilterChipComponent
 import etf.ri.rma.newsfeedapp.data.NewsData
 import etf.ri.rma.newsfeedapp.navigacija.NavigationState
@@ -19,43 +20,40 @@ import java.util.Locale
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun NewsFeedScreen(navController: NavHostController) {
+fun NewsFeedScreen(navController: NavHostController = rememberNavController()) {
     val sveVijesti = remember { NewsData.getAllNews() }
 
-    // Dohvaćamo sve filtere iz NavigationState
     val trenutnaKategorija = NavigationState.trenutnaKategorija ?: "Sve"
     val trenutniOpsegDatuma = NavigationState.trenutniOpsegDatuma
     val nepozeljneRijeci = NavigationState.nepozeljneRijeci
 
-    // Filtriramo vijesti prema svim filterima
     val prikazaneVijesti = remember(trenutnaKategorija, trenutniOpsegDatuma, nepozeljneRijeci) {
-        // Korak 1: Filtriranje po kategoriji
         val filtriranoPoKategoriji = if (trenutnaKategorija == "Sve") {
             sveVijesti
         } else {
             sveVijesti.filter { it.category == trenutnaKategorija }
         }
 
-        // Korak 2: Filtriranje po datumima
-        val filtriranoPoVremenu = if (trenutniOpsegDatuma == null) {
-            filtriranoPoKategoriji
-        } else {
-            val formatter = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
-            val pocetniDatum = formatter.parse(trenutniOpsegDatuma.first)
-            val krajnjiDatum = formatter.parse(trenutniOpsegDatuma.second)
+        val formatter = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
 
-            filtriranoPoKategoriji.filter { vijest ->
-                val datumVijesti = formatter.parse(vijest.publishedDate)
-                datumVijesti != null && !datumVijesti.before(pocetniDatum) && !datumVijesti.after(krajnjiDatum)
-            }
-        }
+        val filtriranoPoVremenu = if (trenutniOpsegDatuma != null) {
+            val pocetniDatum = try { formatter.parse(trenutniOpsegDatuma.first) } catch (e: Exception) { null }
+            val krajnjiDatum = try { formatter.parse(trenutniOpsegDatuma.second) } catch (e: Exception) { null }
 
-        // Korak 3: Filtriranje po nepoželjnim riječima
+            if (pocetniDatum != null && krajnjiDatum != null) {
+                filtriranoPoKategoriji.filter { vijest ->
+                    val datumVijesti = try { formatter.parse(vijest.publishedDate) } catch (e: Exception) { null }
+                    datumVijesti != null &&
+                            !datumVijesti.before(pocetniDatum) &&
+                            !datumVijesti.after(krajnjiDatum)
+                }
+            } else filtriranoPoKategoriji
+        } else filtriranoPoKategoriji
+
         if (nepozeljneRijeci.isEmpty()) {
             filtriranoPoVremenu
         } else {
             filtriranoPoVremenu.filter { vijest ->
-                // Vijest se prikazuje ako ne sadrži niti jednu nepoželjnu riječ
                 nepozeljneRijeci.none { rijec ->
                     vijest.title.contains(rijec, ignoreCase = true) ||
                             vijest.snippet.contains(rijec, ignoreCase = true)
@@ -65,15 +63,14 @@ fun NewsFeedScreen(navController: NavHostController) {
     }
 
     Column(
-        modifier = Modifier
-            .padding(top = 5.dp)
+        modifier = Modifier.padding(top = 3.dp)
     ) {
         FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             listOf(
                 "Politika" to "filter_chip_pol",
@@ -83,15 +80,14 @@ fun NewsFeedScreen(navController: NavHostController) {
                 "Prazna kategorija" to "filter_chip_none",
                 "Više filtera ..." to "filter_chip_more"
             ).forEach { (kategorija, oznaka) ->
-                if(oznaka == "filter_chip_more"){
+                if (oznaka == "filter_chip_more") {
                     FilterChipComponent(
                         dodijeljenaKategorija = kategorija,
                         odabranaKategorija = "",
                         onClick = { navController.navigate("filters") },
                         tag = oznaka
                     )
-                }
-                else{
+                } else {
                     FilterChipComponent(
                         dodijeljenaKategorija = kategorija,
                         odabranaKategorija = trenutnaKategorija,

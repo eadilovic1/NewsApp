@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import etf.ri.rma.newsfeedapp.FilterChipComponent
 import etf.ri.rma.newsfeedapp.navigacija.NavigationState
 import java.text.SimpleDateFormat
@@ -50,7 +51,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun FilterScreen(navController: NavHostController) {
+fun FilterScreen(navController: NavHostController = rememberNavController()) {
     var privremenaKategorija by remember { mutableStateOf(NavigationState.trenutnaKategorija ?: "Sve") }
 
     // State za nepoželjne riječi
@@ -265,6 +266,9 @@ fun FilterScreen(navController: NavHostController) {
                 }
             }
         }
+
+        // Potrebno da dugmad Odustani/Primjijeni filtere budu fiksno na dnu ekrana
+        Spacer(modifier = Modifier.weight(1f))
 
         // Dugmad Odustani/Primjijeni filtere
         Row(
