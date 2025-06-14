@@ -65,4 +65,13 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     androidTestImplementation("org.jetbrains.kotlin:kotlin-test-junit")
     testImplementation(kotlin("test"))
+
+    implementation("com.squareup.retrofit2:retrofit:+")
+    implementation("com.squareup.retrofit2:converter-gson:+")
+    implementation("io.coil-kt:coil-compose:2.4.0")
+
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp-tls:4.12.0") // For TLS features like HeldCertificate
+    androidTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+
 }

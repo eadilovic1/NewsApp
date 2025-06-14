@@ -43,7 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import etf.ri.rma.newsfeedapp.FilterChipComponent
+import etf.ri.rma.newsfeedapp.extrastuff.FilterChipComponent
 import etf.ri.rma.newsfeedapp.navigacija.NavigationState
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -52,7 +52,7 @@ import java.util.Locale
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun FilterScreen(navController: NavHostController = rememberNavController()) {
-    var privremenaKategorija by remember { mutableStateOf(NavigationState.trenutnaKategorija ?: "Sve") }
+    var privremenaKategorija by remember { mutableStateOf(NavigationState.trenutnaKategorija ?: "All") }
 
     // State za nepoželjne riječi
     var novaRijec by remember { mutableStateOf("") }
@@ -117,17 +117,23 @@ fun FilterScreen(navController: NavHostController = rememberNavController()) {
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             listOf(
-                "Politika" to "filter_chip_pol",
-                "Sport" to "filter_chip_spo",
-                "Nauka/Tehnologija" to "filter_chip_sci",
-                "Sve" to "filter_chip_all",
-                "Prazna kategorija" to "filter_chip_none",
+                "All" to "filter_chip_all",
+                "general" to "filter_chip_gen",
+                "science" to "filter_chip_sci",
+                "sports" to "filter_chip_spo",
+                "business" to "filter_chip_bus",
+                "health" to "filter_chip_hea",
+                "entertainment" to "filter_chip_ent",
+                "tech" to "filter_chip_tech",
+                "politics" to "filter_chip_pol",
+                "food" to "filter_chip_food",
+                "travel" to "filter_chip_tra"
             ).forEach { (kategorija, oznaka) ->
                 FilterChipComponent(
                     dodijeljenaKategorija = kategorija,
                     odabranaKategorija = privremenaKategorija,
-                    onClick = { odabrana -> privremenaKategorija = odabrana },
-                    tag = oznaka
+                    tag = oznaka,
+                    onClick = { odabrana -> privremenaKategorija = odabrana }
                 )
             }
         }

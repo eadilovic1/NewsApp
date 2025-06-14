@@ -1,7 +1,5 @@
 package etf.ri.rma.newsfeedapp.screen
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,15 +13,13 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import etf.ri.rma.newsfeedapp.R
+import coil.compose.AsyncImage
 import etf.ri.rma.newsfeedapp.model.NewsItem
 import etf.ri.rma.newsfeedapp.navigacija.NavigationState
 
@@ -31,22 +27,18 @@ import etf.ri.rma.newsfeedapp.navigacija.NavigationState
 fun FeaturedNewsCard(vijest: NewsItem, navController: NavHostController = rememberNavController()) {
     Card(
         onClick = {
-            NavigationState.selectNewsItem(vijest.id)
-            navController.navigate("details/${vijest.id}")
+            NavigationState.selectNewsItem(vijest.uuid)
+            navController.navigate("details/${vijest.uuid}")
         },
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth(),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp)
-        ) {
-            Image(
-                painter = painterResource(R.drawable.slika_vijesti),
-                contentDescription = "image",
+        Column(modifier = Modifier.padding(10.dp)) {
+            AsyncImage(
+                model = vijest.imageUrl,
+                contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -57,40 +49,22 @@ fun FeaturedNewsCard(vijest: NewsItem, navController: NavHostController = rememb
                 text = vijest.title,
                 style = MaterialTheme.typography.titleSmall,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onBackground
+                overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = vijest.snippet,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onBackground
+                overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Start
-            ) {
-                Text(
-                    text = vijest.source,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
+            Row {
+                Text(vijest.source, style = MaterialTheme.typography.bodySmall)
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "•",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text("•", style = MaterialTheme.typography.bodySmall)
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = vijest.publishedDate,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary
-                )
+                Text(vijest.publishedDate, style = MaterialTheme.typography.bodySmall)
             }
         }
     }
