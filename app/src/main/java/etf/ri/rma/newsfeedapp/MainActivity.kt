@@ -13,16 +13,14 @@ import androidx.compose.ui.Modifier
 import etf.ri.rma.newsfeedapp.extrastuff.CustomTopAppBar
 import etf.ri.rma.newsfeedapp.model.AppTheme
 import etf.ri.rma.newsfeedapp.navigacija.AppNavigation
-import etf.ri.rma.newsfeedapp.navigacija.NavigationState
+import etf.ri.rma.newsfeedapp.navigacija.NavigationState.initvrijemePozivaPoKategoriji
 import etf.ri.rma.newsfeedapp.ui.theme.NewsAppTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Inicijalizacija baze podataka
-        NavigationState.initializeDatabase(this)
-        NavigationState.initvrijemePozivaPoKategoriji()
+        initvrijemePozivaPoKategoriji()
 
         val themeViewModel = AppTheme()
 
@@ -42,7 +40,9 @@ class MainActivity : ComponentActivity() {
                                 onToggleTheme = { themeViewModel.toggleTheme() }
                             )
                         }
-                    ) { innerPadding ->
+
+                    ) {
+                            innerPadding ->
                         Box(modifier = Modifier.padding(innerPadding)) {
                             AppNavigation()
                         }
@@ -50,10 +50,5 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-
-    override fun onDestroy() {
-        // Ovdje možete dodati dodatne operacije čišćenja ako je potrebno
-        super.onDestroy()
     }
 }
