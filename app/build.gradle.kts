@@ -40,7 +40,7 @@ android {
 }
 
 dependencies {
-
+    // Core Android dependencies
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -50,12 +50,15 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
+    // Additional Material3 components
     implementation("androidx.compose.material3:material3:1.3.2")
     implementation("androidx.compose.material3:material3-window-size-class:1.2.1")
 
+    // Navigation & Icons
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
+    // Testing dependencies
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -66,12 +69,28 @@ dependencies {
     androidTestImplementation("org.jetbrains.kotlin:kotlin-test-junit")
     testImplementation(kotlin("test"))
 
-    implementation("com.squareup.retrofit2:retrofit:+")
-    implementation("com.squareup.retrofit2:converter-gson:+")
-    implementation("io.coil-kt:coil-compose:2.4.0")
+    // Networking - Retrofit & Gson
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
+    // HTTP client - OkHttp
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.squareup.okhttp3:okhttp-tls:4.12.0") // For TLS features like HeldCertificate
+    implementation("com.squareup.okhttp3:okhttp-tls:4.12.0")
     androidTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 
+    // Image loading - Coil
+    implementation("io.coil-kt:coil-compose:2.4.0")
+
+    // Database - Room (using annotationProcessor)
+    implementation("androidx.room:room-runtime:2.6.1")
+    annotationProcessor("androidx.room:room-compiler:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // Lifecycle components
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.6.2")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
 }

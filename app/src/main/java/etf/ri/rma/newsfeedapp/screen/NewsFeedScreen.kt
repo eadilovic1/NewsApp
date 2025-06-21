@@ -1,19 +1,10 @@
 package etf.ri.rma.newsfeedapp.screen
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import android.content.Context
+import androidx.compose.foundation.layout.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
@@ -22,6 +13,7 @@ import etf.ri.rma.newsfeedapp.data.network.ImagaDAO
 import etf.ri.rma.newsfeedapp.data.network.NewsDAO
 import etf.ri.rma.newsfeedapp.model.NewsItem
 import etf.ri.rma.newsfeedapp.navigacija.NavigationState
+import etf.ri.rma.newsfeedapp.extrastuff.NetworkUtils
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -29,6 +21,7 @@ import java.util.Locale
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun NewsFeedScreen(navController: NavHostController = rememberNavController()) {
+    val context = LocalContext.current
 
     var ucitavanje by remember { mutableStateOf(false) }
     var ucitajPrviPut by remember { mutableStateOf(true) }
@@ -43,16 +36,42 @@ fun NewsFeedScreen(navController: NavHostController = rememberNavController()) {
     val trenutniOpsegDatuma = NavigationState.trenutniOpsegDatuma
     val nepozeljneRijeci = NavigationState.nepozeljneRijeci
 
-    suspend fun dohvatiVijestiZaKategoriju(kategorija: String): List<NewsItem> {
-        val vijesti = if (kategorija == "All") NewsDAO.getAllNews()
-        else NewsDAO.getTopStoriesByCategory(kategorija)
+    suspend fun dohvatiVijestiZaKategoriju(context: Context, kategorija: String): List<NewsItem> {
+        val hasInternet = NetworkUtils.hasInternetConnection(context)
+
+        val vijesti = if (kategorija == "All") {
+            if (hasInternet) NewsDAO.getAllNews()
+            else NavigationState.getAllNewsFromDatabase()
+        } else {
+            NewsDAO.getTopStoriesByCategory(context, kategorija)
+        }
+
         return vijesti.map { vijest ->
             if (vijest.imageUrl != null && vijest.imageTags.isEmpty()) {
                 try {
-                    val tagovi = ImagaDAO.getTags(vijest.imageUrl)
-                    vijest.copyByTags(tagovi)
+                    val tagovi = if (hasInternet) {
+                        ImagaDAO.getTagsForNewsItem(context, vijest.uuid, vijest.imageUrl)
+                    } else {
+                        NavigationState.getTagsHybrid(vijest.uuid, false)
+                    }
+
+                    val updatedVijest = vijest.copyByTags(tagovi)
+
+                    if (tagovi.isNotEmpty()) {
+                        NavigationState.syncNewsWithDatabase(updatedVijest)
+                        if (hasInternet) {
+                            NavigationState.syncTagsWithDatabase(vijest.uuid, tagovi)
+                        }
+                    }
+
+                    updatedVijest
                 } catch (e: Exception) {
-                    vijest
+                    if (!hasInternet) {
+                        val tagsFromDb = NavigationState.getTagsHybrid(vijest.uuid, false)
+                        if (tagsFromDb.isNotEmpty()) {
+                            vijest.copyByTags(tagsFromDb)
+                        } else vijest
+                    } else vijest
                 }
             } else vijest
         }
@@ -62,11 +81,21 @@ fun NewsFeedScreen(navController: NavHostController = rememberNavController()) {
         if (ucitajPrviPut) {
             ucitavanje = true
             try {
-                val vijesti = dohvatiVijestiZaKategoriju(trenutnaKategorija)
+                val vijesti = dohvatiVijestiZaKategoriju(context, trenutnaKategorija)
                 if (vijesti.isNotEmpty()) {
                     vijestiSaTagovimaSlika = vijesti
                 }
             } catch (_: Exception) {
+                try {
+                    val vijestiIzBaze = if (trenutnaKategorija == "All") {
+                        NavigationState.getAllNewsFromDatabase()
+                    } else {
+                        NavigationState.getNewsByCategoryFromDatabase(trenutnaKategorija)
+                    }
+                    if (vijestiIzBaze.isNotEmpty()) {
+                        vijestiSaTagovimaSlika = vijestiIzBaze
+                    }
+                } catch (_: Exception) {}
             } finally {
                 ucitavanje = false
                 ucitajPrviPut = false
@@ -94,7 +123,6 @@ fun NewsFeedScreen(navController: NavHostController = rememberNavController()) {
                 } else emptyArray(),
                 "More filters ..." to "filter_chip_more"
             ).forEach { (kategorija, oznaka) ->
-
                 FilterChipComponent(
                     dodijeljenaKategorija = kategorija,
                     odabranaKategorija = trenutnaKategorija,
@@ -107,11 +135,23 @@ fun NewsFeedScreen(navController: NavHostController = rememberNavController()) {
                             scope.launch {
                                 ucitavanje = true
                                 try {
-                                    val noveVijesti = dohvatiVijestiZaKategoriju(novaKategorija)
+                                    val noveVijesti = dohvatiVijestiZaKategoriju(context, novaKategorija)
                                     if (noveVijesti.isNotEmpty()) {
                                         vijestiSaTagovimaSlika = noveVijesti
                                     }
                                 } catch (e: Exception) {
+                                    try {
+                                        val vijestiIzBaze = if (novaKategorija == "All") {
+                                            NavigationState.getAllNewsFromDatabase()
+                                        } else {
+                                            NavigationState.getNewsByCategoryFromDatabase(novaKategorija)
+                                        }
+                                        if (vijestiIzBaze.isNotEmpty()) {
+                                            vijestiSaTagovimaSlika = vijestiIzBaze
+                                        }
+                                    } catch (dbException: Exception) {
+                                        println("Greška pri dohvaćanju vijesti iz baze: ${dbException.message}")
+                                    }
                                     println("Greška pri dohvaćanju vijesti: ${e.message}")
                                 } finally {
                                     ucitavanje = false

@@ -3,30 +3,17 @@ package etf.ri.rma.newsfeedapp.screen
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -35,55 +22,97 @@ import coil.compose.AsyncImage
 import etf.ri.rma.newsfeedapp.data.network.ImagaDAO
 import etf.ri.rma.newsfeedapp.data.network.NewsDAO
 import etf.ri.rma.newsfeedapp.model.NewsItem
+import etf.ri.rma.newsfeedapp.navigacija.NavigationState
+import etf.ri.rma.newsfeedapp.extrastuff.NetworkUtils
 import kotlinx.coroutines.launch
 
 @Composable
 fun NewsDetailsScreen(navController: NavHostController, id: String) {
+    val context = LocalContext.current
     val listaVijesti = remember { mutableStateListOf<NewsItem>().apply { addAll(NewsDAO.getAllNews()) } }
     val trenutnaVijest = remember(id) { listaVijesti.find { it.uuid == id } }
 
     var slicneVijesti by remember { mutableStateOf<List<NewsItem>>(emptyList()) }
     var headlinesBySource by remember { mutableStateOf<List<String>>(emptyList()) }
-
     var tagoviSlika by remember { mutableStateOf<List<String>>(emptyList()) }
 
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(id) {
         trenutnaVijest?.let { vijest ->
+            val hasInternet = NetworkUtils.hasInternetConnection(context)
+
             scope.launch {
+                // Dohvati slične vijesti
                 runCatching {
-                    NewsDAO.getSimilarStories(vijest.uuid)
+                    if (hasInternet) {
+                        NewsDAO.getSimilarStories(context, vijest.uuid)
+                    } else {
+                        NavigationState.getSimilarNewsHybrid(vijest.uuid, false)
+                    }
                 }.onSuccess { slicne ->
                     slicneVijesti = slicne
                     slicne.forEach { item ->
-                        NewsDAO.addNewsItem(item, vijest.category)
+                        if (hasInternet) {
+                            NewsDAO.addNewsItem(item, vijest.category)
+                            NavigationState.syncNewsWithDatabase(item)
+                        }
                     }
-                }.onFailure { e ->
-                    println("Greška pri dohvatanju sličnih vijesti: ${e.message}")
+                }.onFailure {
+                    if (!hasInternet) {
+                        slicneVijesti = NavigationState.getSimilarNewsHybrid(vijest.uuid, false)
+                    }
                 }
 
+                // Dohvati tagove slike
                 vijest.imageUrl?.let { url ->
                     runCatching {
-                        ImagaDAO.getTags(url)
+                        if (hasInternet) {
+                            ImagaDAO.getTagsForNewsItem(context, vijest.uuid, url)
+                        } else {
+                            NavigationState.getTagsHybrid(vijest.uuid, false)
+                        }
                     }.onSuccess { tagovi ->
                         tagoviSlika = tagovi
                         val index = listaVijesti.indexOfFirst { it.uuid == vijest.uuid }
                         if (index != -1) {
                             val novaVijest = listaVijesti[index].copyByTags(tagovi)
                             listaVijesti[index] = novaVijest
+
+                            if (tagovi.isNotEmpty()) {
+                                NavigationState.syncNewsWithDatabase(novaVijest)
+                                if (hasInternet) {
+                                    NavigationState.syncTagsWithDatabase(vijest.uuid, tagovi)
+                                }
+                            }
                         }
-                    }.onFailure { e ->
-                        println("Greška pri tagovanju slike: ${e.message}")
+                    }.onFailure {
+                        if (!hasInternet) {
+                            tagoviSlika = NavigationState.getTagsHybrid(vijest.uuid, false)
+                        }
                     }
                 }
 
+                // Dohvati naslove iz istog izvora
                 runCatching {
-                    NewsDAO.getHeadlinesBySource(vijest.source)
+                    if (hasInternet) {
+                        NewsDAO.getHeadlinesBySource(context, vijest.source)
+                    } else {
+                        val localHeadlines = NavigationState.getAllNewsFromDatabase()
+                            .filter { it.source == vijest.source }
+                            .map { it.title }
+                        localHeadlines.ifEmpty {
+                            NavigationState.trenutneSveVijesti
+                                .filter { it.source == vijest.source }
+                                .map { it.title }
+                        }
+                    }
                 }.onSuccess { headlines ->
                     headlinesBySource = headlines
-                }.onFailure { e ->
-                    println("Greška pri dohvatanju naslova iz istog izvora: ${e.message}")
+                }.onFailure {
+                    headlinesBySource = NavigationState.trenutneSveVijesti
+                        .filter { it.source == vijest.source }
+                        .map { it.title }
                 }
             }
         }
@@ -110,7 +139,7 @@ fun NewsDetailsScreen(navController: NavHostController, id: String) {
                 .verticalScroll(scrollState)
                 .padding(bottom = 72.dp)
         ) {
-            if (trenutnaVijest.imageUrl != null){
+            if (trenutnaVijest.imageUrl != null) {
                 AsyncImage(
                     model = trenutnaVijest.imageUrl,
                     contentDescription = null,
@@ -140,87 +169,40 @@ fun NewsDetailsScreen(navController: NavHostController, id: String) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = "Kategorija: ${trenutnaVijest.category}",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.testTag("details_category")
-            )
-
-            Text(
-                text = "Izvor: ${trenutnaVijest.source}",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.testTag("details_source")
-            )
-
-            Text(
-                text = "Datum: ${trenutnaVijest.publishedDate}",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.testTag("details_date")
-            )
+            Text("Kategorija: ${trenutnaVijest.category}", modifier = Modifier.testTag("details_category"))
+            Text("Izvor: ${trenutnaVijest.source}", modifier = Modifier.testTag("details_source"))
+            Text("Datum: ${trenutnaVijest.publishedDate}", modifier = Modifier.testTag("details_date"))
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = "Tagovi slike",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.testTag("deatils_image_tags"),
-                fontWeight = FontWeight.SemiBold
-            )
-
+            Text("Tagovi slike", fontWeight = FontWeight.SemiBold, modifier = Modifier.testTag("deatils_image_tags"))
             Spacer(modifier = Modifier.height(4.dp))
-
             if (tagoviSlika.isEmpty()) {
-                Text(
-                    text = "Nema tagova"
-                )
-            }
-            else{
-                Text(
-                    text = tagoviSlika.joinToString(", "),
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Text("Nema tagova")
+            } else {
+                Text(tagoviSlika.joinToString(", "), style = MaterialTheme.typography.bodySmall)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Naslovi sa istog izvora",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.testTag("titles_from_same_source"),
-                fontWeight = FontWeight.SemiBold
-            )
-
+            Text("Naslovi sa istog izvora", fontWeight = FontWeight.SemiBold, modifier = Modifier.testTag("titles_from_same_source"))
             Spacer(modifier = Modifier.height(4.dp))
-
             if (headlinesBySource.isEmpty()) {
-                Text(
-                    text = "Nema više vijesti na ovom izvoru",
-                )
-            }
-            else{
-                Text(
-                    text = headlinesBySource.joinToString("\n"),
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Text("Nema više vijesti na ovom izvoru")
+            } else {
+                Text(headlinesBySource.joinToString("\n"), style = MaterialTheme.typography.bodySmall)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Povezane vijesti iz iste kategorije",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-
+            Text("Povezane vijesti iz iste kategorije", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
 
             slicneVijesti.forEachIndexed { index, vijest ->
                 Text(
                     text = vijest.title,
                     modifier = Modifier
-                        .clickable {
-                            navController.navigate("details/${vijest.uuid}")
-                        }
+                        .clickable { navController.navigate("details/${vijest.uuid}") }
                         .testTag("related_news_title_${index + 1}")
                 )
                 Spacer(modifier = Modifier.height(4.dp))
@@ -232,16 +214,12 @@ fun NewsDetailsScreen(navController: NavHostController, id: String) {
                 .align(Alignment.BottomStart)
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background)
-        ){
+        ) {
             Button(
-                onClick = {
-                    navController.popBackStack("home", inclusive = false)
-                },
+                onClick = { navController.popBackStack("home", inclusive = false) },
                 modifier = Modifier.testTag("details_close_button")
             ) {
-                Text(
-                    text = "Zatvori detalje"
-                )
+                Text("Zatvori detalje")
             }
         }
     }

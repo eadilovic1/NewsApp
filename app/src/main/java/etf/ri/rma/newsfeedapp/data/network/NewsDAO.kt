@@ -1,16 +1,20 @@
 package etf.ri.rma.newsfeedapp.data.network
 
+import android.content.Context
 import etf.ri.rma.newsfeedapp.data.network.api.NewsApiItem
 import etf.ri.rma.newsfeedapp.data.network.api.NewsApiService
 import etf.ri.rma.newsfeedapp.data.network.exception.InvalidUUIDException
 import etf.ri.rma.newsfeedapp.model.NewsItem
+import etf.ri.rma.newsfeedapp.navigacija.NavigationState
+import etf.ri.rma.newsfeedapp.network.RetrofitClient
+import etf.ri.rma.newsfeedapp.extrastuff.NetworkUtils
 import etf.ri.rma.newsfeedapp.navigacija.NavigationState.nasloviSaIstogIzvora
 import etf.ri.rma.newsfeedapp.navigacija.NavigationState.slicneVijestiKes
 import etf.ri.rma.newsfeedapp.navigacija.NavigationState.trenutneSveVijesti
 import etf.ri.rma.newsfeedapp.navigacija.NavigationState.updateVrijemePoziva
 import etf.ri.rma.newsfeedapp.navigacija.NavigationState.vrijemePozivaPoKategoriji
-import etf.ri.rma.newsfeedapp.network.RetrofitClient
 import kotlinx.coroutines.Dispatchers
+
 import kotlinx.coroutines.withContext
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -25,12 +29,10 @@ class NewsDAO {
         this.api = testApiService ?: RetrofitClient.newsApi
     }
 
-    // Dodajte companion object sa singleton instancom
     companion object {
         @Volatile
         private var INSTANCE: NewsDAO? = null
 
-        // Dodaj za testove
         @Volatile
         private var testApiService: NewsApiService? = null
 
@@ -45,17 +47,16 @@ class NewsDAO {
             getInstance().setApiService(api ?: RetrofitClient.newsApi)
         }
 
-        // Dodajte ove statičke metode za kompatibilnost sa postojećim kodom
         fun getAllNews(): List<NewsItem> = getInstance().getAllNews()
 
-        suspend fun getTopStoriesByCategory(category: String): List<NewsItem> =
-            getInstance().getTopStoriesByCategory(category)
+        suspend fun getTopStoriesByCategory(context: Context, category: String): List<NewsItem> =
+            getInstance().getTopStoriesByCategory(context, category)
 
-        suspend fun getSimilarStories(uuid: String): List<NewsItem> =
-            getInstance().getSimilarStories(uuid)
+        suspend fun getSimilarStories(context: Context, uuid: String): List<NewsItem> =
+            getInstance().getSimilarStories(context, uuid)
 
-        suspend fun getHeadlinesBySource(sourceid: String): List<String> =
-            getInstance().getHeadlinesBySource(sourceid)
+        suspend fun getHeadlinesBySource(context: Context, sourceid: String): List<String> =
+            getInstance().getHeadlinesBySource(context, sourceid)
 
         fun addNewsItem(newsItem: NewsItem, kategorija: String) =
             getInstance().addNewsItem(newsItem, kategorija)
@@ -76,12 +77,11 @@ class NewsDAO {
     }
 
     private fun mapApiItemToNewsItem(item: NewsApiItem, kategorija: String? = null): NewsItem {
-
         val outputFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
         val formattedDate = try {
             ZonedDateTime.parse(item.published_at).format(outputFormatter)
         } catch (e: Exception) {
-            item.published_at // fallback to original if parsing fails
+            item.published_at
         }
 
         return NewsItem(
@@ -97,104 +97,143 @@ class NewsDAO {
         )
     }
 
-    suspend fun getTopStoriesByCategory(category: String): List<NewsItem> = withContext(Dispatchers.IO) {
+    suspend fun getTopStoriesByCategory(context: Context, category: String): List<NewsItem> = withContext(Dispatchers.IO) {
         val kategorija = category.lowercase(Locale.ROOT)
         val trenutno = System.currentTimeMillis()
         val proslo = vrijemePozivaPoKategoriji[kategorija] ?: 0L
-        val lokalne = trenutneSveVijesti.filter { it.category == kategorija }
+
+        val hasInternet = NetworkUtils.hasInternetConnection(context)
 
         if (kategorija == "All") {
-            return@withContext trenutneSveVijesti
+            return@withContext NavigationState.getNewsHybrid("All", hasInternet)
         }
+
+        if (!hasInternet) {
+            return@withContext NavigationState.getNewsHybrid(kategorija, false)
+        }
+
+        val lokalne = trenutneSveVijesti.filter { it.category == kategorija }
 
         if (trenutno - proslo < TimeUnit.SECONDS.toMillis(30)) {
             updateVrijemePoziva(kategorija)
             return@withContext lokalne
         }
 
-        val odgovor = api.getTopStoriesByCategory(
-            apiToken = API_KEY,
-            categories = kategorija
-        )
+        try {
+            val odgovor = api.getTopStoriesByCategory(apiToken = API_KEY, categories = kategorija)
 
-        val noveVijesti = if (odgovor.isSuccessful) {
-            odgovor.body()?.data
-                ?.map { mapApiItemToNewsItem(it, kategorija) }
-                ?.filter { it.category == kategorija }
-                ?.take(3)
-        } else null
+            val noveVijesti = if (odgovor.isSuccessful) {
+                odgovor.body()?.data
+                    ?.map { mapApiItemToNewsItem(it, kategorija) }
+                    ?.filter { it.category == kategorija }
+                    ?.take(3)
+            } else null
 
-        if (noveVijesti != null) {
-            // Filter out new items that already exist in the list (by uuid)
-            val nepostojeci = noveVijesti.filter { nova -> trenutneSveVijesti.none { it.uuid == nova.uuid } }
+            if (noveVijesti != null) {
+                val nepostojeci = noveVijesti.filter { nova -> trenutneSveVijesti.none { it.uuid == nova.uuid } }
 
-            // Set old news to standard
-            trenutneSveVijesti.replaceAll { vijest ->
-                if (vijest.category == kategorija && nepostojeci.none { nova -> nova.uuid == vijest.uuid }) {
-                    vijest.copyByType(false)
-                } else vijest
+                trenutneSveVijesti.replaceAll { vijest ->
+                    if (vijest.category == kategorija && nepostojeci.none { it.uuid == vijest.uuid }) {
+                        vijest.copyByType(false)
+                    } else vijest
+                }
+                trenutneSveVijesti.addAll(0, nepostojeci.map { it.copyByType(true) })
+
+                nepostojeci.forEach { newsItem ->
+                    NavigationState.syncNewsWithDatabase(newsItem)
+                }
             }
-            // Add only truly new news as featured
-            trenutneSveVijesti.addAll(0, nepostojeci.map { it.copyByType(true) })
+
+            updateVrijemePoziva(kategorija)
+            return@withContext trenutneSveVijesti.filter { it.category == kategorija }
+
+        } catch (e: Exception) {
+            return@withContext NavigationState.getNewsHybrid(kategorija, false)
         }
-
-        updateVrijemePoziva(kategorija)
-
-        return@withContext trenutneSveVijesti.filter { it.category == kategorija }
     }
 
-    suspend fun getSimilarStories(uuid: String): List<NewsItem> = withContext(Dispatchers.IO) {
+    suspend fun getSimilarStories(context: Context, uuid: String): List<NewsItem> = withContext(Dispatchers.IO) {
         try {
             UUID.fromString(uuid)
         } catch (e: Exception) {
             throw InvalidUUIDException("Invalid UUID format: $uuid")
         }
 
+        val hasInternet = NetworkUtils.hasInternetConnection(context)
+
+        if (!hasInternet) {
+            return@withContext NavigationState.getSimilarNewsHybrid(uuid, false)
+        }
+
         if (slicneVijestiKes.containsKey(uuid)) {
             return@withContext slicneVijestiKes[uuid]!!
         }
 
-        val response = api.getSimilarStories(
-            uuid = uuid,
-            apiToken = API_KEY
-        )
+        try {
+            val response = api.getSimilarStories(uuid = uuid, apiToken = API_KEY)
 
-        if (response.isSuccessful && response.body() != null) {
-            val slicne = response.body()!!.data.map { mapApiItemToNewsItem(it) }.take(2)
+            if (response.isSuccessful && response.body() != null) {
+                val slicne = response.body()!!.data.map { mapApiItemToNewsItem(it) }.take(2)
+                slicneVijestiKes[uuid] = slicne
+
+                slicne.forEach { newsItem ->
+                    NavigationState.syncNewsWithDatabase(newsItem)
+                }
+
+                return@withContext slicne
+            }
+
+            val original = trenutneSveVijesti.find { it.uuid == uuid }
+                ?: throw InvalidUUIDException("News with UUID $uuid not found")
+
+            val slicne = trenutneSveVijesti
+                .filter { it.uuid != uuid && it.category == original.category }
+                .take(2)
             slicneVijestiKes[uuid] = slicne
+
             return@withContext slicne
+
+        } catch (e: Exception) {
+            return@withContext NavigationState.getSimilarNewsHybrid(uuid, false)
         }
-
-        val original = trenutneSveVijesti.find { it.uuid == uuid }
-        if (original == null) {
-            throw InvalidUUIDException("News with UUID $uuid not found")
-        }
-
-        val slicne = trenutneSveVijesti
-            .filter { it.uuid != uuid && it.category == original.category }
-            .take(2)
-        slicneVijestiKes[uuid] = slicne
-
-        return@withContext slicne
     }
 
-    suspend fun getHeadlinesBySource(sourceid: String): List<String> = withContext(Dispatchers.IO) {
-        nasloviSaIstogIzvora[sourceid]?.let {
-            return@withContext it
+    suspend fun getHeadlinesBySource(context: Context, sourceid: String): List<String> = withContext(Dispatchers.IO) {
+        val hasInternet = NetworkUtils.hasInternetConnection(context)
+
+        nasloviSaIstogIzvora[sourceid]?.let { return@withContext it }
+
+        if (!hasInternet) {
+            val headlines = trenutneSveVijesti
+                .filter { it.source == sourceid }
+                .map { it.title }
+            if (headlines.isNotEmpty()) {
+                nasloviSaIstogIzvora[sourceid] = headlines
+                return@withContext headlines
+            }
+            throw Exception("No internet and no local data for source: $sourceid")
         }
 
-        val response = api.getHeadlinesBySource(
-            apiToken = API_KEY,
-            sourceIds = sourceid
-        )
+        try {
+            val response = api.getHeadlinesBySource(apiToken = API_KEY, sourceIds = sourceid)
 
-        if (response.isSuccessful && response.body() != null) {
-            val headlines = response.body()!!.data.map { it.title }
-            nasloviSaIstogIzvora[sourceid] = headlines
-            return@withContext headlines
+            if (response.isSuccessful && response.body() != null) {
+                val headlines = response.body()!!.data.map { it.title }
+                nasloviSaIstogIzvora[sourceid] = headlines
+                return@withContext headlines
+            }
+
+            throw Exception("Failed to fetch headlines for source: $sourceid")
+
+        } catch (e: Exception) {
+            val headlines = trenutneSveVijesti
+                .filter { it.source == sourceid }
+                .map { it.title }
+            if (headlines.isNotEmpty()) {
+                nasloviSaIstogIzvora[sourceid] = headlines
+                return@withContext headlines
+            }
+            throw Exception("Fallback failed for source: $sourceid")
         }
-
-        throw Exception("Failed to fetch headlines for source: $sourceid")
     }
-
 }
